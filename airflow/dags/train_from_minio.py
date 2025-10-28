@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task
-from airflow.hooks.S3_hook import S3Hook
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import os
 
 BUCKET = os.getenv("MINIO_BUCKET", "truck-telemetry")

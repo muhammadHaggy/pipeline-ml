@@ -122,16 +122,14 @@ services:
       postgis-setup:
         condition: service_completed_successfully
     env_file: .env
-    user: "0:0"
+    user: "${AIRFLOW_UID}:0"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
+      - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./airflow/requirements.txt:/requirements.txt
     entrypoint: /bin/bash
-    command: -c "mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/plugins && \
-      chown -R $AIRFLOW_UID:0 /opt/airflow/dags /opt/airflow/logs /opt/airflow/plugins && \
-      pip install --no-cache-dir --constraint \"$AIRFLOW_CONSTRAINTS_URL\" -r /requirements.txt && \
+    command: -c "pip install --user --no-cache-dir --constraint \"$AIRFLOW_CONSTRAINTS_URL\" -r /requirements.txt && \
       airflow db migrate && \
       airflow users create --role Admin --username \"$AIRFLOW_ADMIN_USER\" --password \"$AIRFLOW_ADMIN_PASSWORD\" --firstname Admin --lastname User --email \"$AIRFLOW_ADMIN_EMAIL\""
 
@@ -149,7 +147,7 @@ services:
       - "8080:8080"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
+      - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -169,7 +167,7 @@ services:
     command: scheduler
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
+      - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
 
 volumes:
@@ -177,5 +175,6 @@ volumes:
   mosquitto_data:
   minio_data:
   pgdata:
+  airflow_logs:
 
 

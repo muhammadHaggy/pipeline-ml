@@ -5,6 +5,11 @@ Services:
 - MinIO object storage with bucket init
 - Node.js consumer that subscribes to `trucks/+/metrics` and appends JSONL to `bucket/<truck_id>/<YYYY-MM-DD>/data.jsonl`
 
+## Added: Airflow + PostGIS
+- PostGIS (PostgreSQL with PostGIS extension) for Airflow metadata and optional geospatial storage
+- Apache Airflow (LocalExecutor) with webserver and scheduler
+- Prewired S3-compatible connection (`minio_s3`) to MinIO
+
 ## Prereqs
 - Docker & Docker Compose
 
@@ -31,5 +36,17 @@ minio://${MINIO_BUCKET}/TRUCK-001/2025-10-24/data.jsonl
 ```
 
 Access MinIO Console at http://localhost:${MINIO_CONSOLE_PORT}
+
+## Airflow
+- Web UI: http://localhost:8080 (user/pass from `.env`)
+- First-time init is handled by `airflow-init` service
+- Example DAG: `airflow/dags/train_from_minio.py`
+
+### Airflow connections and DB
+- Airflow DB: `${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}` (Postgres on `postgis` service)
+- MinIO connection: `${AIRFLOW_CONN_MINIO_S3}` (S3-compatible)
+
+### Notes
+- Ensure `AIRFLOW__CORE__FERNET_KEY` is set to a real base64 key before production.
 
 

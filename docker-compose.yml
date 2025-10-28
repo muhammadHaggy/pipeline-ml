@@ -129,7 +129,7 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
       - ./airflow/requirements.txt:/requirements.txt
     entrypoint: /bin/bash
-    command: -c "pip install --no-cache-dir -r /requirements.txt && \
+    command: -c "pip install --no-cache-dir --constraint \"$AIRFLOW_CONSTRAINTS_URL\" -r /requirements.txt && \
       airflow db migrate && \
       airflow users create --role Admin --username \"$AIRFLOW_ADMIN_USER\" --password \"$AIRFLOW_ADMIN_PASSWORD\" --firstname Admin --lastname User --email \"$AIRFLOW_ADMIN_EMAIL\""
 

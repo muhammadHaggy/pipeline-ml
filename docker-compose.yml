@@ -122,14 +122,16 @@ services:
       postgis-setup:
         condition: service_completed_successfully
     env_file: .env
-    user: "${AIRFLOW_UID}:0"
+    user: "0:0"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./airflow/requirements.txt:/requirements.txt
     entrypoint: /bin/bash
-    command: -c "pip install --no-cache-dir --constraint \"$AIRFLOW_CONSTRAINTS_URL\" -r /requirements.txt && \
+    command: -c "mkdir -p /opt/airflow/dags /opt/airflow/logs /opt/airflow/plugins && \
+      chown -R $AIRFLOW_UID:0 /opt/airflow/dags /opt/airflow/logs /opt/airflow/plugins && \
+      pip install --no-cache-dir --constraint \"$AIRFLOW_CONSTRAINTS_URL\" -r /requirements.txt && \
       airflow db migrate && \
       airflow users create --role Admin --username \"$AIRFLOW_ADMIN_USER\" --password \"$AIRFLOW_ADMIN_PASSWORD\" --firstname Admin --lastname User --email \"$AIRFLOW_ADMIN_EMAIL\""
 

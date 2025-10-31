@@ -4,8 +4,10 @@ services:
     command: >-
       sh -c "mosquitto_passwd -b -c /mosquitto/config/passwordfile $${MQTT_USERNAME} $${MQTT_PASSWORD}"
     volumes:
-      - ./mosquitto/config:/mosquitto/config
-    env_file: .env
+      - /home/muhammadhaggy/pipeline-ml/mosquitto/config:/mosquitto/config
+    environment:
+      MQTT_USERNAME: ${MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
 
   mosquitto:
     image: eclipse-mosquitto:2.0
@@ -15,9 +17,11 @@ services:
     ports:
       - "${MQTT_PORT}:1883"
     volumes:
-      - ./mosquitto/config:/mosquitto/config
+      - /home/muhammadhaggy/pipeline-ml/mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
-    env_file: .env
+    environment:
+      MQTT_USERNAME: ${MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "mosquitto_pub -h 127.0.0.1 -p 1883 -t health -m ok -u \"$MQTT_USERNAME\" -P \"$MQTT_PASSWORD\""]
       interval: 10s
@@ -52,10 +56,13 @@ services:
       mc mb -p local/${MINIO_BUCKET} || true &&
       mc anonymous set none local/${MINIO_BUCKET} || true
       "
-    env_file: .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
   consumer:
-    build: ./consumer
+    image: ${CONSUMER_IMAGE}
     depends_on:
       mosquitto:
         condition: service_healthy
@@ -118,17 +125,27 @@ services:
         condition: service_healthy
       postgis-setup:
         condition: service_completed_successfully
-    env_file: .env
     user: "${AIRFLOW_UID}:0"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - /home/muhammadhaggy/pipeline-ml/airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
-      - ./airflow/requirements.txt:/requirements.txt
+      - /home/muhammadhaggy/pipeline-ml/airflow/plugins:/opt/airflow/plugins
+      - /home/muhammadhaggy/pipeline-ml/airflow/requirements.txt:/requirements.txt
     entrypoint: /bin/bash
     command: -c "pip install --no-cache-dir --constraint \"$AIRFLOW_CONSTRAINTS_URL\" -r /requirements.txt && \
       airflow db migrate && \
       airflow users create --role Admin --username \"$AIRFLOW_ADMIN_USER\" --password \"$AIRFLOW_ADMIN_PASSWORD\" --firstname Admin --lastname User --email \"$AIRFLOW_ADMIN_EMAIL\""
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW_CONSTRAINTS_URL: ${AIRFLOW_CONSTRAINTS_URL}
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW_CONN_MINIO_S3: ${AIRFLOW_CONN_MINIO_S3}
 
   airflow-webserver:
     image: ${AIRFLOW_IMAGE}
@@ -137,20 +154,26 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
-    env_file: .env
     user: "${AIRFLOW_UID}:0"
     command: webserver
     ports:
       - "8080:8080"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - /home/muhammadhaggy/pipeline-ml/airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
+      - /home/muhammadhaggy/pipeline-ml/airflow/plugins:/opt/airflow/plugins
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 10
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW_CONN_MINIO_S3: ${AIRFLOW_CONN_MINIO_S3}
 
   airflow-scheduler:
     image: ${AIRFLOW_IMAGE}
@@ -159,13 +182,19 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
-    env_file: .env
     user: "${AIRFLOW_UID}:0"
     command: scheduler
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - /home/muhammadhaggy/pipeline-ml/airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
+      - /home/muhammadhaggy/pipeline-ml/airflow/plugins:/opt/airflow/plugins
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW_CONN_MINIO_S3: ${AIRFLOW_CONN_MINIO_S3}
 
 volumes:
   mosquitto_data:

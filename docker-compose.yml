@@ -4,7 +4,7 @@ services:
     command: >-
       sh -c "mosquitto_passwd -b -c /mosquitto/config/passwordfile $${MQTT_USERNAME} $${MQTT_PASSWORD}"
     volumes:
-      - mosquitto_conf:/mosquitto/config
+      - ./mosquitto/config:/mosquitto/config
     env_file: .env
 
   mosquitto:
@@ -15,9 +15,8 @@ services:
     ports:
       - "${MQTT_PORT}:1883"
     volumes:
-      - mosquitto_conf:/mosquitto/config
+      - ./mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     env_file: .env
     healthcheck:
       test: ["CMD-SHELL", "mosquitto_pub -h 127.0.0.1 -p 1883 -t health -m ok -u \"$MQTT_USERNAME\" -P \"$MQTT_PASSWORD\""]
@@ -169,7 +168,6 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
 
 volumes:
-  mosquitto_conf:
   mosquitto_data:
   minio_data:
   pgdata:
